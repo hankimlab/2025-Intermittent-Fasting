@@ -1,0 +1,157 @@
+---
+title: "20250929_fig6"
+output: html_document
+date: "2025-09-29"
+---
+
+# Figure 6A - Heatmap - Strength of Interactions - sources as neutrophils and macrophages
+```{r}
+fig <- netVisual_heatmap(
+  cc_chow_15w,
+  comparison = c(1, 2),
+  font.size = 11,
+  font.size.title = 0,
+  color.use =  c(
+    '#264653',
+    '#2A9D8F',
+    '#A44A3F',
+    '#BC6C25',
+    '#E9C46A',
+    '#E76F51',
+    '#6B4226',
+    '#F4A261',
+    '#DAD7CD',
+    '#8AB17D',
+    '#52796F',
+    '#84A59D',
+    '#606C38'
+  ),
+  measure = "count",
+  sources.use = c("Neutrophils","Myofibroblasts"),
+  targets.use = c(1:13),
+  remove.isolate = TRUE
+)
+
+fig@right_annotation@anno_size <- unit(1.1, 'cm') 
+fig@top_annotation_param$height <- unit(1.1, "cm")
+
+tiff(
+  "heatmap_chow_15w_count_Neut_mFB_space.tiff",
+  width = 5,
+  height = 4,
+  units = "in",
+  res = 300
+)
+draw(fig,
+     heatmap_legend_side = "bottom",
+     annotation_legend_side = "bottom"
+)
+dev.off()
+
+
+fig <- netVisual_heatmap(
+  cc_chow_15w,
+  comparison = c(1, 2),
+  font.size = 11,
+  font.size.title = 0,
+  color.use =  c(
+    '#264653',
+    '#2A9D8F',
+    '#A44A3F',
+    '#BC6C25',
+    '#E9C46A',
+    '#E76F51',
+    '#6B4226',
+    '#F4A261',
+    '#DAD7CD',
+    '#8AB17D',
+    '#52796F',
+    '#84A59D',
+    '#606C38'
+  ),
+  measure = "weight",
+  sources.use = c("Neutrophils","Myofibroblasts"),
+  targets.use = c(1:13),
+  remove.isolate = TRUE
+)
+
+fig@right_annotation@anno_size <- unit(1.1, 'cm') 
+fig@top_annotation_param$height <- unit(1.1, "cm")
+
+tiff(
+  "heatmap_chow_15w_weight_Neut_mFB_space.tiff",
+  width = 5,
+  height = 4,
+  units = "in",
+  res = 300
+)
+draw(fig,
+     heatmap_legend_side = "bottom",
+     annotation_legend_side = "bottom"
+)
+
+dev.off()
+```
+
+# Figure 6B and 6C - Bubble Plot - Source as Myofibroblasts (fig 6B) and Neutrophils (fig 6C)
+```{r}
+# Make color palette
+new_col_1 <- c("grey97",
+               "lightsteelblue",
+               "#AED9F5"
+               )
+new_col_2 <- c("#1E90FF", "purple", "#4B0082", "#000000")
+new_col_2 <- colorRampPalette(new_col_2)(20)
+new_col <- c(new_col_1, new_col_2)
+
+# Myofibroblasts - diff color
+tiff(
+  "bubble_chow_15w_filtered_myofibroblasts_newcol_v3.tiff",
+  res = 300,
+  height = 14.5,
+  width = 11,
+  units = 'in'
+)
+netVisual_bubble(
+  cc_chow_15w,
+  sources.use = 4,
+  targets.use = c(1, 3, 4, 5, 6, 7),
+  comparison = c(1, 2),
+  angle.x = 45,
+  line.on = F,
+  color.text = c("#D4A017", "#347856"),
+  font.size = 12,
+  dot.size.min = 2.5,
+  dot.size.max = 4
+) +
+  scale_fill_gradientn(colors = new_col) + 
+  scale_color_gradientn(colors = new_col) +
+  ggplot2::geom_point(shape = 21, stroke = 0.75, color = "black")
+dev.off()
+
+# Neutrophils
+tiff(
+  "bubble_chow_15w_filtered_neutrophils_newcol_v3.tiff",
+  res = 300,
+  height = 8.5,
+  width = 10.5,
+  units = 'in'
+)
+netVisual_bubble(
+  cc_chow_15w,
+  sources.use = 5,
+  targets.use = c(1, 3, 4, 5, 6, 7),
+  comparison = c(1, 2),
+  angle.x = 45,
+  line.on = F,
+  color.text = c("#D4A017", "#347856"),
+  font.size = 12,
+  dot.size.min = 2.5,
+  dot.size.max = 4
+) +
+  scale_fill_gradientn(colors = new_col) + 
+  scale_color_gradientn(colors = new_col) +
+  ggplot2::geom_point(shape = 21, stroke = 0.75, color = "black")
+dev.off()
+
+```

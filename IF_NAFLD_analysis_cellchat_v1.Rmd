@@ -1,0 +1,184 @@
+---
+title: "IF_NAFLD_cellchat_v1"
+output: html_document
+date: "2025-09-12"
+editor_options: 
+  chunk_output_type: console
+---
+
+# Load libraries
+```{r}
+library(Seurat)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Scillus)
+library(dplyr)
+library(tidyr)
+library(Cairo)
+library(presto)
+library(ComplexHeatmap)
+library(grid)
+library(CellChat)
+```
+
+# Organize seurat identities
+```{r}
+Idents(liver_Chow) <- liver_Chow$CellType
+liver_Chow <- RenameIdents(liver_Chow, 
+                      "B" = "B cells",
+                      "DCs" = "Dendritic cells",
+                      "pDCs" = "Plasma dendritic cells",
+                      "T" = "T cells",
+                      "NK" = "NK cells",
+                      "Monocyte/Monocyte derived macrophage" = "Monocytes/Macrophages")
+
+levels(liver_Chow) <- c('Hepatocytes', 
+                   'Hepatic progenitor cells', 
+                   'Stellate cells', 
+                   'Myofibroblasts',
+                   'Neutrophils',
+                   'Monocytes/Macrophages',
+                   'Kupffer cells',
+                   'Dendritic cells', 
+                   'Plasma dendritic cells',
+                   'NK cells',
+                   'B cells',
+                   'T cells',
+                   'Endothelial cells')
+liver_Chow$CellType <- Idents(liver_Chow)
+```
+
+# Subset Chow and 15 week data containing cells of interest
+```{r}
+liver_chow_coi <- subset(
+  liver_Chow,
+  idents = c(
+    "Hepatocytes",
+    "Stellate cells",
+    "Myofibroblasts",
+    "Neutrophils",
+    "Monocytes/Macrophages",
+    "Kupffer cells"
+  )
+)
+
+liver_15weeks_coi <- subset(
+  liver_15weeks,
+  idents = c(
+    "Hepatocytes",
+    "Stellate cells",
+    "Myofibroblasts",
+    "Neutrophils",
+    "Monocytes/Macrophages",
+    "Kupffer cells"
+  )
+)
+```
+
+
+# Create cell chat object from Seurat
+```{r}
+cc_chow <- createCellChat(object = liver_Chow,
+                           meta = liver_Chow@meta.data,
+                           group.by = "CellType")
+cc_15w <- createCellChat(object = liver_15weeks,
+                           meta = liver_15weeks@meta.data,
+                           group.by = "CellType")
+```
+
+# Set working database
+```{r}
+## Set the ligand-receptor interaction database
+CellChatDB <- CellChatDB.mouse
+# use CellChatDB.human  if running on human data
+showDatabaseCategory(CellChatDB)
+```
+
+# Examine database
+```{r}
+# Show the structure of the database
+dplyr::glimpse(CellChatDB$interaction)
+
+# Save this data: Txt file
+write.table(
+  CellChatDB$interaction,
+  file = "CellChatDB.txt",
+  sep = "\t",
+  row.names = TRUE,
+  col.names = NA
+)
+```
+
+# Define database to use
+```{r}
+#use all CellChatDB except for "Non-protein Signaling" for cell-cell communication analysis
+CellChatDB.use <- subsetDB(CellChatDB)
+showDatabaseCategory(CellChatDB.use)
+write.table(
+  CellChatDB.use$interaction,
+  file = "CellChatDB_no_nonprotein.txt",
+  sep = "\t",
+  row.names = TRUE,
+  col.names = NA
+)
+```
+
+# Set used database in cellchat object
+```{r}
+cc_chow@DB <- CellChatDB.use
+cc_15w@DB <- CellChatDB.use
+```
+
+# Confirm database used in object of interest
+```{r}
+showDatabaseCategory(cc_15w@DB)
+```
+
+## Preprocessing the expression data for cell-cell communication analysis
+
+# subset the expression data of signaling genes for saving computation cost
+```{r}
+cc_chow <- subsetData(cc_chow)
+cc_15w <- subsetData(cc_15w)
+```
+
+# Identify over expressed genes/interactions
+```{r}
+cc_chow <- identifyOverExpressedGenes(cc_chow)
+cc_chow <- identifyOverExpressedInteractions(cc_chow)
+
+cc_15w <- identifyOverExpressedGenes(cc_15w)
+cc_15w <- identifyOverExpressedInteractions(cc_15w)
+```
+
+# Compute the communication probability and infer cellular communication network
+```{r}
+cc_chow <- computeCommunProb(cc_chow, type = "triMean")
+cc_15w <- computeCommunProb(cc_15w, type = "triMean")
+```
+
+## Infer the cell-cell communication at a signaling pathway level
+```{r}
+cc_chow <- computeCommunProbPathway(cc_chow)
+cc_15w <- computeCommunProbPathway(cc_15w)
+```
+
+# Calculate the aggregated cell-cell communication network
+```{r}
+cc_chow <- aggregateNet(cc_chow)
+cc_15w <- aggregateNet(cc_15w)
+```
+
+# Calculate compute centrality
+```{r}
+cc_chow <- netAnalysis_computeCentrality(cc_chow, slot.name = "netP")
+cc_15w <- netAnalysis_computeCentrality(cc_15w, slot.name = "netP")
+```
+
+# Merge datasets of interest
+```{r}
+list_allcells <-
+  list(Chow = cc_chow, HFD_15wk = cc_15w)
+cc_chow_15w <-
+  mergeCellChat(list_allcells, add.names = names(list_allcells))
+```

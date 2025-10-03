@@ -1,0 +1,124 @@
+---
+title: "IF_NAFLD_scRNAseq_v1"
+output: html_document
+date: "2025-09-29"
+---
+
+# Load libraries
+```{r}
+library(Seurat)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Scillus)
+library(dplyr)
+library(tidyr)
+library(Cairo)
+library(presto)
+library(ComplexHeatmap)
+library(grid)
+library(CellChat)
+```
+
+# Read in the counts file and make it a sparse matrix format
+```{r}
+liver_counts <- read.table(file = "/Volumes/Samsung_T5/20230518_MacBook_public_snRNAseq/8_QiSu_iScience_liver_NAFLD_mouse/1_rawdata/output/GSE166504_cell_raw_counts.20220204.txt", 
+                     sep = '\t', 
+                     header = T) # if .csv, sep = ","
+
+liver_counts <- read.table(file = "counts_matrix.txt", 
+                     sep = '\t', 
+                     header = T,
+                     row.names = liver_counts$X)
+
+liver_counts$X <- NULL
+
+liver_counts_mx <- as.matrix(liver_counts)
+```
+
+# Read meta.data
+```{r}
+liver_meta.data <- read.table("/Volumes/Samsung_T5/20230518_MacBook_public_snRNAseq/8_QiSu_iScience_liver_NAFLD_mouse/1_rawdata/output/GSE166504_cell_metadata.20220204.tsv", 
+                              sep = '\t', 
+                              header = T)
+
+View(liver_meta.data)
+
+sampleinfo <- liver_meta.data$FileName
+spec_sampleinfo <- str_split_fixed(sampleinfo, "_", 4)
+
+liver_meta.data$input <- spec_sampleinfo[,1]
+liver_meta.data$food <- spec_sampleinfo[,2]
+liver_meta.data$animal <- spec_sampleinfo[,3]
+liver_meta.data$capture <- spec_sampleinfo[,4]
+
+View(liver_meta.data)
+
+row.names(liver_meta.data) <- make.unique(liver_meta.data$CellID)
+liver_meta.data$CellID <- NULL
+liver_meta.data$FileName <- NULL
+
+View(liver_meta.data)
+```
+
+# Create a seurat object using expression matrix and meta.data
+```{r}
+liver <- CreateSeuratObject(counts = liver_counts_mx,
+                           assay = "RNA",
+                           meta.data = liver_meta.data,
+                           min.cells = 3,
+                           project = "liver")
+str(liver)
+
+id <- colnames(liver_counts_mx)
+
+table(nchar(liver_meta.data$CellID))
+
+id_barcode <- substr(id, nchar(id)-16+1, nchar(id))
+table(nchar(id_barcode))
+
+colnames(liver_counts_mx) <- make.unique(id_barcode)
+
+liver <- CreateSeuratObject(counts = liver_counts_mx,
+                           assay = "RNA",
+                           meta.data = liver_meta.data,
+                           project = "liver")
+```
+
+# Quality Control : take a look at the paper to see parameters used
+"cells with fewer than 300 detected genes, more than 60,000 detected UMI, and a very high (>0.8) mitochondrial genome transcript ratio were filtered.
+```{r}
+liver$percent.mito <- PercentageFeatureSet(liver, pattern = "^mt-")
+# no genes. Let's double check data
+
+VlnPlot(liver, c("nFeature_RNA", "nCount_RNA"))
+# Load data
+```{r}
+load("liver_seuratonly_20240102.rds")
+```
+
+```{r}
+# Normalize data
+```{r}
+liver <- NormalizeData(liver)
+```
+
+# Find Variable Features
+paper : "The top 2,000 variable genes(HVGs) were identified using the function FindVariableFeatures"
+```{r}
+liver <- FindVariableFeatures(liver, nfeatures = 2000)
+```
+
+# Scale Data
+```{r}
+liver <-
+  ScaleData(liver, vars.to.regress = c("food", "capture", "animal"))
+```
+
+# Perform PCA & Run UMAP
+```{r}
+liver <- RunPCA(liver)
+liver <- RunUMAP(liver, dims = 1:30)
+```
+
+
+

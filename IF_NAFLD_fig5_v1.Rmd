@@ -1,0 +1,409 @@
+---
+title: "IF_NAFLD_fig5_v1"
+output: html_document
+date: "2025-09-29"
+---
+
+# Figure 5A - UMAP - celltype
+```{r}
+Idents(liver) <- liver$CellType
+
+fig <- DimPlot(
+  liver,
+  cols = colpal_celltype,
+  shuffle = T,
+  pt.size = 0.1
+) & NoAxes() &
+  theme(
+    text = element_text(size = 16),
+    plot.title = element_blank(),
+    panel.background = element_rect(fill = "transparent", colour = NA),
+    plot.background = element_rect(fill = "transparent", colour = NA)
+  )
+
+ggsave(
+  plot = fig,
+  filename = "fig5a_celltype_v2.tiff",
+  width = 11,
+  height = 6,
+  dpi = 300
+)
+```
+
+# Figure 5A - UMAP - food
+```{r}
+Idents(liver) <- liver$food
+
+fig <- DimPlot(
+  liver,
+  cols = colpal_food,
+  split.by = 'food',
+  shuffle = T,
+  pt.size = 0.1
+) &
+  theme(
+    strip.text = element_text(size = 15, face = 'plain'),
+    plot.title = element_blank(),
+    panel.background = element_rect(fill = "transparent", colour = NA),
+    plot.background = element_rect(fill = "transparent", colour = NA),
+    legend.text = element_text(size = 11 )
+  ) &
+  NoAxes()
+
+ggsave(
+  plot = fig,
+  filename = "fig5a_food_v1.tiff",
+  width = 10,
+  height = 2.7,
+  dpi = 300
+)
+```
+
+## Analysis - isolate hepatocytes
+```{r}
+Idents(liver) <- liver$CellType
+hep <- subset(liver, idents = 'Hepatocytes')
+stel <- subset(liver, idents = 'Stellate cells')
+```
+
+# Figure 5B - dotplot - steatosis in hepatocytes
+```{r}
+Idents(hep) <- hep$food
+
+fig <- DotPlot(
+  hep,
+  features = c("Fabp2", "Cd36", "Apoa4", "Gckr", "Plin5", "Plin2"),
+  cols = c('lightgrey', '#264653'),
+  col.min = -1,
+  col.max = 1,
+  dot.scale = 7
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression', order = 2)) &
+  guides(size = guide_legend(title = 'Percent\nExpressed', order = 1)) &
+  coord_flip() &
+  #scale_size(breaks = c(0, 20, 40, 60, 80, 100)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 9, face = 'italic', vjust = 0.4),
+    axis.text.x = element_text(size = 10, angle = 90, vjust = 0.4, hjust = 1),
+    axis.ticks.length.x.bottom = unit(2, 'mm'),
+    axis.ticks.length.y.left = unit(2, 'mm'),
+    #axis.text.y = ggtext::element_markdown(size = 13,
+    #                                       colour = rev(mycolors2)),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.3, 'cm'),
+    legend.key.height = unit(0.3, 'cm')
+  )
+
+ggsave(
+  plot = fig,
+  filename = "fig5b_hepatocytes_steatosis_v2.tiff",
+  width = 3,
+  height = 3.5,
+  dpi = 300
+)
+```
+
+# Figure 5B - dotplot - fibrosis in stellate cells
+```{r}
+Idents(stel) <- stel$food
+
+fig <- DotPlot(
+  stel,
+  features = c("Timp1", "Col6a3", "Col6a2", "Col6a1", "Col1a2", "Col1a1"),
+  cols = c('lightgrey', '#A44A3F'),
+  col.min = -1,
+  col.max = 1,
+  dot.scale = 7
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression', order = 2)) &
+  guides(size = guide_legend(title = 'Percent\nExpressed', order = 1)) &
+ coord_flip() &
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 9, face = 'italic', vjust = 0.4),
+    axis.text.x = element_text(size = 10, angle = 90, vjust = 0.4, hjust = 1),
+    axis.ticks.length.x.bottom = unit(2, 'mm'),
+    axis.ticks.length.y.left = unit(2, 'mm'),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.3, 'cm'),
+    legend.key.height = unit(0.3, 'cm')
+  )
+
+ggsave(
+  plot = fig,
+  filename = "fig5b_stellate_fibrosis_v2.tiff",
+  width = 3.04,
+  height = 3.5,
+  dpi = 300
+)
+```
+
+# Figure 5D - VlnPlot - fibrosis in stellate cells
+```{r}
+fig <- VlnPlot(
+  liver,
+  features = c(
+    "Acat1",
+    "Hmgcs2",
+    "Hmgcl",
+    "Bdh1",
+    "Oxct1",
+    "Slc16a1",
+    "Slc16a3",
+    "Hcar2"
+  ),
+  group.by = 'CellType',
+  split.by = 'food',
+  stack = TRUE,
+  flip = TRUE,
+  cols = colpal_food
+)
+
+fig$layers[[1]]$aes_params$size <- 0.25
+
+fig <- fig + theme(
+  axis.title.x = element_blank(),
+  axis.text.x = element_text(
+    size = 14,
+    angle = 40,
+    vjust = 1,
+    hjust = 1,
+    colour = colpal_celltype # optional for colored x-axis labels
+  ), 
+  axis.ticks.length.x = unit(0.2, "cm"),
+  axis.ticks.length.y = unit(0.1, "cm"),
+  axis.title.y = element_text(size = 13),
+  axis.text.y = element_text(size = 11),
+  strip.text = element_text(size = 14, hjust = 0, face = "italic"),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA),
+  plot.margin = unit(c(1.5,1.5,1.5,1.5), "cm")
+) &
+  NoLegend()
+
+ggsave(
+  plot = fig,
+  filename = "fig5d_vln_KB_metabolism_v1.tiff",
+  width = 8.5,
+  height = 8,
+  dpi = 300
+)
+```
+
+# Supplementary - Ccl genes
+```{r}
+fig <- VlnPlot(
+  liver,
+  features = c(
+    "Ccl2",
+    "Ccl3",
+    "Ccl4",
+    "Ccl6",
+    "Ccl9",
+    "Ccr1",
+    "Ccr2",
+    "Ccr4",
+    "Ccr5"
+  ),
+  group.by = 'CellType',
+  split.by = 'food',
+  stack = TRUE,
+  flip = TRUE,
+  cols = colpal_food
+)
+
+fig$layers[[1]]$aes_params$size <- 0.1
+
+fig <- fig + theme(
+  axis.title.x = element_blank(),
+  axis.text.x = element_text(
+    size = 11,
+    angle = 45,
+    vjust = 1,
+    hjust = 1
+  ),
+  axis.ticks.length.x = unit(0.2, "cm"),
+  axis.ticks.length.y = unit(0.1, "cm"),
+  axis.title.y = element_text(size = 11),
+  axis.text.y = element_text(size = 10),
+  strip.text = element_text(size = 11, hjust = 0, face = "italic"),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA),
+  plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
+) &
+  #        plot.margin = unit(c(0,0,0,0), "cm")) +
+  NoLegend()
+
+ggsave(
+  plot = fig,
+  filename = "sfigx_vln_ccl_v1.tiff",
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+```
+
+# Supplementary - marker genes of all cells
+```{r}
+Idents(liver) <- liver$CellType
+levels(liver) <- rev(levels(liver))
+fig <- DotPlot(
+  liver,
+  features = c("Alb", "Epcam", "Reln", "Rgs5", "Msln", "Myl7", "Retinlg", "Ccl4", "Lyz1","Ccr2", "Clec4f", "Vsig4", "Flt3","Siglech", "Ccr9", "Xcl1", "Ncr1", "Cd79a", "Ms4a1", "Cd3g", "Nkg7", "Clec4g", "Fabp4"),
+  cols = c('lightgrey', 'darkred'),
+  col.min = -1,
+  col.max = 1,
+  dot.scale = 6
+)  &
+  guides(color = guide_colorbar(title = 'Average\nExpression', order = 2)) &
+  guides(size = guide_legend(title = 'Percent\nExpressed', order = 1)) &
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 9.5, vjust = 0.4),
+    axis.text.x = element_text(size = 9, angle = 90, face = 'italic', hjust = 1, vjust = 0.5),
+    axis.ticks.length.x.bottom = unit(1, 'mm'),
+    axis.ticks.length.y.left = unit(1.5, 'mm'),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.box = "vertical",
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.3, 'cm'),
+    legend.key.height = unit(0.3, 'cm')
+  )
+
+ggsave(
+  plot = fig,
+  filename = "sfigx_dotplot_markergenes_v1.tiff",
+  width = 10,
+  height = 3.5,
+  dpi = 300
+)
+```
+
+# Supplementary - marker genes of all cells
+```{r}
+fig <- VlnPlot(
+  liver,
+  features = c(
+    "Slc16a4",
+    "Slc16a6",
+    "Slc16a7",
+    "Ffar2",
+    "Ffar3"
+  ),
+  group.by = 'CellType',
+  split.by = 'food',
+  stack = TRUE,
+  flip = TRUE,
+  cols = c('lightgrey', 'darkred')
+)
+
+fig$layers[[1]]$aes_params$size <- 0.1
+
+fig <- fig + theme(
+  axis.title.x = element_blank(),
+  axis.text.x = element_text(
+    size = 11,
+    angle = 45,
+    vjust = 1,
+    hjust = 1
+  ),
+  axis.ticks.length.x = unit(0.2, "cm"),
+  axis.ticks.length.y = unit(0.1, "cm"),
+  axis.title.y = element_text(size = 11),
+  axis.text.y = element_text(size = 10),
+  strip.text = element_text(size = 11, hjust = 0, face = "italic"),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA),
+  plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
+) &
+  #        plot.margin = unit(c(0,0,0,0), "cm")) +
+  NoLegend()
+
+ggsave(
+  plot = fig,
+  filename = "sfigx_vln_slc_ffar_v1.tiff",
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+```
+
+```{r}
+fig <- FeaturePlot(
+  liver,
+  features = c("Slc16a4", "Slc16a6", "Slc16a7", "Ffar2", "Ffar3"),
+  cols = c("lightgrey", "darkred"),
+  ncol = 5,
+  order = F,
+  pt.size = 0.1
+) &
+  NoAxes() &
+  theme(
+    plot.title = element_text(size = 20, face = "italic"),
+    legend.text = element_text(size = 8),
+    legend.key.width = unit(0.25, 'cm'),
+    legend.key.height = unit(0.25, 'cm'),
+    legend.spacing.x = unit(0.12, 'cm')
+  )
+ggsave(
+  plot = fig,
+  filename = "sfigx_featureplot_slc_ffar_v1.tiff",
+  width = 20,
+  height = 4,
+  dpi = 300
+)
+
+```
+
+```{r}
+fig <- VlnPlot(
+  liver,
+  features = "Slc16a4",
+  group.by = 'CellType',
+  split.by = 'food',
+  cols = c('lightgrey', 'darkred'),
+  pt.size = 0.1
+)
+fig$layers[[1]]$aes_params$size <- 0.1
+
+fig <- fig & theme(
+  plot.title = element_text(size = 8, face = 'italic'),
+  axis.title.x = element_blank(),
+  axis.text.x = element_text(
+    size = 7,
+    angle = 45,
+    vjust = 1,
+    hjust = 1
+  ),
+  axis.line = element_line(size = 0.2),
+  axis.ticks = element_line(size = 0.2),
+  axis.ticks.length.x = unit(0.1, "cm"),
+  axis.ticks.length.y = unit(0.1, "cm"),
+  axis.title.y = element_text(size = 6),
+  axis.text.y = element_text(size = 6),
+  panel.background = element_rect(fill = "transparent", colour = NA),
+  plot.background = element_rect(fill = "transparent", colour = NA),
+  #plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
+) &
+  #        plot.margin = unit(c(0,0,0,0), "cm")) +
+  NoLegend()
+
+ggsave(
+  plot = fig,
+  filename = "sfigx_vln_Slc16a4_v1.tiff",
+  width = 3,
+  height = 2,
+  dpi = 300
+)
+```
